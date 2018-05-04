@@ -6,12 +6,13 @@ import signal
 
 REFRESH_TIMEOUT = 45.0
 SLEEP_TIMEOUT = 900.0
-LOADING_TEXT = '.'
+LOADING_TEXT = '...'
 SCROLL_SPEED = 0.03
 APP_ID = ''
 APP_KEY = ''
 
 lines = [
+    {},
     {
         'stop_point': '490011360E',
         'line_name': '345',
@@ -26,11 +27,8 @@ lines = [
 
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(17, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-
 start_time = time.time()
-
 selected_line_index = 0;
-
 scrollphathd.set_brightness(0.2)
 
 print('Pi Bus Times Started')
@@ -71,38 +69,41 @@ def scroll_display():
     scrollphathd.scroll()
     time.sleep(SCROLL_SPEED)
 
-while True:
-    scrollphathd.clear()
-    scrollphathd.show()
-    if button_pressed(GPIO.input(17)):
-        sleep_timer = SLEEP_TIMEOUT
-        scrollphathd.clear()
-        scrollphathd.write_string(LOADING_TEXT, 0)
-        scrollphathd.show()
+def debounce_button():
+    while button_pressed(GPIO.input(17)):
+        time.sleep(0.01)
 
-        while int(sleep_timer) > 0:
-            sleep_timer = update_timer(SLEEP_TIMEOUT)
+while True:
+    sleep_timer = SLEEP_TIMEOUT
+
+    while int(sleep_timer) > 0:
+        sleep_timer = update_timer(SLEEP_TIMEOUT)
+
+        scrollphathd.clear()
+
+        if selected_line_index != 0:
+            scrollphathd.write_string(LOADING_TEXT, 0)
+            scrollphathd.show()
 
             selected_line = get_selected_line()
             arrival_times = get_arrival_times(selected_line['stop_point'], selected_line['line_name'])
             concat_arrivals = concat_arrival_times(arrival_times)
-
-            refresh_timer = REFRESH_TIMEOUT
 
             scrollphathd.clear()
             scrollphathd.write_string(
                 ' ' + selected_line['line_name'] + 
                 ' ' + selected_line['destination'] + 
                 ' ' + concat_arrivals + ' -')
-            scrollphathd.show()
 
-            while int(refresh_timer) > 0:
-                refresh_timer = update_timer(REFRESH_TIMEOUT)
-                scroll_display()
-                if button_pressed(GPIO.input(17)):
-                    scrollphathd.clear()
-                    scrollphathd.write_string(LOADING_TEXT, 0)
-                    scrollphathd.show()
-                    selected_line_index = (selected_line_index + 1) % len(lines)
-                    print('selected line' + str(selected_line_index))
-                    break
+        scrollphathd.show()
+
+        refresh_timer = REFRESH_TIMEOUT
+
+        while int(refresh_timer) > 0:
+            refresh_timer = update_timer(REFRESH_TIMEOUT)
+            scroll_display()
+            if button_pressed(GPIO.input(17)):
+                debounce_button()
+                selected_line_index = (selected_line_index + 1) % len(lines)
+                print('selected line ' + str(selected_line_index))
+                break
