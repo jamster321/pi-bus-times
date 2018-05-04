@@ -1,0 +1,12 @@
+[
+    {
+        "stop_point": "490011360E",
+        "line_name": "345",
+        "destination": "Peckham"
+    },
+    {
+        "stop_point": "490014058N",
+        "line_name": "87",
+        "destination": "Aldwych"
+    }
+]
